@@ -13,7 +13,7 @@ ROJO='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Función para instalar un paquete si no está instalado
-install_package_if_missing() {
+instalar_paquete_sinosta() {
   package_name="$1"
   if ! dpkg -l | grep -q "^ii\s*$package_name"; then
     echo "Instalando el paquete $package_name ..."
@@ -25,8 +25,9 @@ install_package_if_missing() {
 }
 
 # Comprobar e instalar paquetes necesarios
-install_package_if_missing nmap
-install_package_if_missing ipcalc
+instalar_paquete_sinosta nmap
+instalar_paquete_sinosta ipcalc
+instalar_paquete_sinosta nc
 
 # Función para mostrar la cabecera
 cabecera() {
@@ -82,9 +83,10 @@ while true; do
   echo "8. Agregar dirección IP específica para escaneo"
   echo "9. Conectar por ssh a una IP"
   echo "10. Sniffear la red"
-  echo "11. Salir"
+  echo "11. Enviar mensaje a una IP detectada"
+  echo "12. Salir"
   echo -e "========================================${NC}"
-  read -p "Selecciona una opción (1-10): " option
+  read -p "Selecciona una opción (1-11): " option
 
 
   case $option in
@@ -205,9 +207,40 @@ while true; do
 
         read -p "Presiona Enter para continuar..."
         ;;
-      11)
-        echo -e "${GREEN}Saliendo del programa.${NC}"
-        exit
+      11) 
+        cabecera "Enviar mensaje a una IP detectada"
+        echo -e "${AMARILLO}Realizando un escaneo de ping en la red $ip_address...${NC}"
+
+        # Realizar el escaneo de ping y almacenar las direcciones IP en una lista
+        base_ip=$(echo $ip_address | cut -d"." -f1-3)
+        ip_list=()
+        for i in $(seq 1 254); do
+          ping -c 1 -W 1 $base_ip.$i >/dev/null 2>&1
+          if [[ $? -eq 0 ]]; then
+            ip_list+=("$base_ip.$i")
+          fi
+        done
+
+        # Mostrar las direcciones IP encontradas
+        echo -e "${AMARILLO}Direcciones IP encontradas:${NC}"
+        for ((i=0; i<${#ip_list[@]}; i++)); do
+          echo "$i: ${ip_list[$i]}"
+        done
+
+        # Solicitar al usuario que elija una dirección IP para enviar el mensaje
+        read -p "Selecciona una dirección IP para enviar el mensaje (escribe el número): " message_ip_choice
+
+        if [[ "$message_ip_choice" -ge 0 && "$message_ip_choice" -lt "${#ip_list[@]}" ]]; then
+          selected_message_ip="${ip_list[$message_ip_choice]}"
+          read -p "Escribe el mensaje que deseas enviar a $selected_message_ip: " message
+          read -p "Escribe el puerto al que deseas enviar el mensaje (123): " message_port
+          echo -e "${GREEN}Enviando mensaje \"$message\" a la dirección IP: $selected_message_ip en el puerto $message_port${NC}"
+          echo "$message" | nc -w 1 -u $selected_message_ip $message_port
+        else
+          echo -e "${RED}Opción inválida. Por favor, selecciona un número válido de dirección IP.${NC}"
+        fi
+
+        read -p "Presiona Enter para continuar..."
         ;;
     *)
       echo -e "${ROJO}Opción inválida. Por favor, selecciona una opción válida (1-9).${NC}"
