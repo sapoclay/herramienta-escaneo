@@ -12,7 +12,7 @@ AMARILLO='\033[1;33m'
 ROJO='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Instalación dependencias. Función para instalar un paquete si no está instalado
+# Función para instalar un paquete si no está instalado
 install_package_if_missing() {
   package_name="$1"
   if ! dpkg -l | grep -q "^ii\s*$package_name"; then
@@ -85,6 +85,7 @@ while true; do
   echo "11. Salir"
   echo -e "========================================${NC}"
   read -p "Selecciona una opción (1-10): " option
+
 
   case $option in
     1)
@@ -174,12 +175,34 @@ while true; do
       ;;
       10)
         cabecera "Sniffear paquetes en la red"
-        echo -e "${YELLOW}Comenzando la captura de paquetes en la red $network/$mask...${NC}"
-        
-        # Capturar paquetes en la red y guardarlos en un archivo
-        sudo tcpdump -i $selected_interface -w capture.pcap
-        
-        echo -e "${GREEN}Captura de paquetes completada. Los paquetes se han guardado en capture.pcap${NC}"
+        echo "1. Capturar paquetes en toda la red"
+        echo "2. Capturar paquetes de una IP específica"
+        read -p "Selecciona una opción (1-2): " capture_option
+
+        case $capture_option in
+          1)
+            echo -e "${YELLOW}Comenzando la captura de paquetes en la red $network/$mask...${NC}"
+            sudo tcpdump -i $selected_interface -w capture.pcap
+            echo -e "${GREEN}Captura de paquetes completada. Los paquetes se han guardado en capture.pcap${NC}"
+            ;;
+          2)
+            read -p "Ingresa la dirección IP para capturar paquetes: " capture_ip
+            echo -e "${YELLOW}Comenzando la captura de paquetes para la IP $capture_ip...${NC}"
+            sudo tcpdump -i $selected_interface host $capture_ip -w capture.pcap
+            echo -e "${GREEN}Captura de paquetes completada. Los paquetes se han guardado en capture.pcap${NC}"
+            ;;
+          *)
+            echo -e "${RED}Opción inválida. Por favor, selecciona una opción válida (1-2).${NC}"
+            ;;
+        esac
+
+        # Opción para leer el paquete guardado
+        read -p "¿Quieres leer el paquete guardado? (s/n): " read_option
+        if [[ "$read_option" == "s" ]]; then
+          echo -e "${YELLOW}Leyendo el paquete guardado con tcpdump...${NC}"
+          sudo tcpdump -r capture.pcap
+        fi
+
         read -p "Presiona Enter para continuar..."
         ;;
       11)
