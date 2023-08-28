@@ -81,7 +81,8 @@ while true; do
   echo "7. Ver todas las opciones de nmap"
   echo "8. Agregar dirección IP específica para escaneo"
   echo "9. Conectar por ssh a una IP"
-  echo "10. Salir"
+  echo "10. Sniffear la red"
+  echo "11. Salir"
   echo -e "========================================${NC}"
   read -p "Selecciona una opción (1-10): " option
 
@@ -171,8 +172,20 @@ while true; do
 
       read -p "Presiona Enter para continuar..."
       ;;
-
-
+      10)
+        cabecera "Sniffear paquetes en la red"
+        echo -e "${YELLOW}Comenzando la captura de paquetes en la red $network/$mask...${NC}"
+        
+        # Capturar paquetes en la red y guardarlos en un archivo
+        sudo tcpdump -i $selected_interface -w capture.pcap
+        
+        echo -e "${GREEN}Captura de paquetes completada. Los paquetes se han guardado en capture.pcap${NC}"
+        read -p "Presiona Enter para continuar..."
+        ;;
+      11)
+        echo -e "${GREEN}Saliendo del programa.${NC}"
+        exit
+        ;;
     *)
       echo -e "${ROJO}Opción inválida. Por favor, selecciona una opción válida (1-9).${NC}"
       read -p "Presiona Enter para continuar..."
