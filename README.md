@@ -1,4 +1,4 @@
-# herramienta escaneo nmap, ssh, y demás cosas
+# Herramienta escaneo nmap, ssh, y demás cosas
 
 Pequeño menú de herramientas de escaneo que utiliza nmap para trabajar en sistemas Ubuntu
 
