@@ -216,13 +216,13 @@ while true; do
         4)
           read -p "Escribe la dirección IP para capturar sus paquetes: " capture_ip
           echo -e "${YELLOW}Comenzando la captura de paquetes para la IP $capture_ip...${NC}"
-          sudo tshark -i $selected_interface -Y "ip.addr == $capture_ip" -w captura.pcap &
+          sudo tshark -i $selected_interface -w captura.pcap
           echo -e "${YELLOW}Capturando datos de la IP $capture_ip...${NC}"
           sleep 5  # Ajusta según sea necesario
           read -p "Captura completada. ¿Quieres leer el archivo captura.pcap? (s/n): " read_option
           if [[ "$read_option" == "s" ]]; then
-            echo -e "${YELLOW}Leyendo el archivo captura.pcap...${NC}"
-            tshark -r captura.pcap
+            echo -e "${YELLOW}Leyendo el archivo captura.pcap con filtro...${NC}"
+            tshark -r captura.pcap -Y "ip.addr == $capture_ip"
           fi
           ;;
           *)
