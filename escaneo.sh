@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Asegúrate de tener nmap instalado. Si no está instalado, puedes usar:
+# sudo apt-get install nmap
+# Para calcular la ip de la red junto con la mascara de red es necesario instalar:
+# sudo apt-get install ipcalc
 # El script mejor ejecutarlo con sudo
 
 # Colores ANSI
@@ -82,7 +86,7 @@ while true; do
   echo "11. Enviar mensaje a una IP detectada"
   echo "12. Salir"
   echo -e "========================================${NC}"
-  read -p "Selecciona una opción (1-11): " option
+  read -p "Selecciona una opción (1-12): " option
 
 
   case $option in
@@ -114,19 +118,30 @@ while true; do
       read -p "Presiona Enter para continuar..."
       ;;
     5)
-      cabecera "Realizar un escaneo de ping en la red"
-      echo -e "${AMARILLO}Realizando un escaneo de ping en la red $ip_address...${NC}"
-      
-      base_ip=$(echo $ip_address | cut -d"." -f1-3)
-      for i in $(seq 1 254); do
-        ping -c 1 -W 1 $base_ip.$i
-      done
-      
-      read -p "Presiona Enter para continuar..."
-      ;;
+        cabecera "Realizar un escaneo de ping en la red"
+        echo -e "${AMARILLO}Realizando un escaneo de ping en la red $ip_address...${NC}"
+        
+        base_ip=$(echo $ip_address | cut -d"." -f1-3)
+        active_ips=()  # Lista para almacenar las direcciones IP activas
+        
+        for i in $(seq 1 254); do
+          if ping -c 1 -W 1 $base_ip.$i >/dev/null 2>&1; then
+            echo "$base_ip.$i está activa"
+            active_ips+=("$base_ip.$i")  # Agregar a la lista de direcciones IP activas
+          fi
+        done
+        
+        # Mostrar la lista de direcciones IP activas
+        echo -e "${VERDE}Direcciones IP activas encontradas:${NC}"
+        for ip in "${active_ips[@]}"; do
+          echo "$ip"
+        done
+        
+        read -p "Presiona Enter para continuar..."
+        ;;
     6)
-      cabecera "Ingresar argumentos adicionales de nmap"
-      read -p "Ingresa argumentos adicionales de nmap: " nmap_args
+      cabecera "Escribe argumentos adicionales de nmap"
+      read -p "Escribe argumentos adicionales de nmap: " nmap_args
       echo -e "${AMARILLO}Ejecutando nmap con argumentos adicionales...${NC}"
       nmap $nmap_args $ip_address
       read -p "Presiona Enter para continuar..."
@@ -138,8 +153,8 @@ while true; do
       read -p "Presiona Enter para continuar..."
       ;;
     8)
-      cabecera "Agregar dirección IP específica para escaneo"
-      read -p "Ingresa la dirección IP específica para escaneo: " specific_ip
+      cabecera "Añade dirección IP específica para escaneo"
+      read -p "Escribe la dirección IP específica para escaneo: " specific_ip
       echo -e "${AMARILLO}Escanendo la dirección IP $specific_ip...${NC}"
       nmap -p- $specific_ip
       read -p "Presiona Enter para continuar..."
@@ -179,20 +194,20 @@ while true; do
 
         case $capture_option in
           1)
-            echo -e "${YELLOW}Comenzando la captura de paquetes en la red $network/$mask...${NC}"
-            sudo tcpdump -i $selected_interface -w capture.pcap
-            echo -e "${GREEN}Captura de paquetes completada. Los paquetes se han guardado en capture.pcap${NC}"
+            echo -e "${YELLOW}Comenzando la captura de paquetes DNS en la red $network/$mask...${NC}"
+            sudo tcpdump -i $selected_interface -n -vvv -s 0 port 53
             ;;
           2)
             read -p "Ingresa la dirección IP para capturar paquetes: " capture_ip
-            echo -e "${YELLOW}Comenzando la captura de paquetes para la IP $capture_ip...${NC}"
-            sudo tcpdump -i $selected_interface host $capture_ip -w capture.pcap
-            echo -e "${GREEN}Captura de paquetes completada. Los paquetes se han guardado en capture.pcap${NC}"
+            echo -e "${YELLOW}Comenzando la captura de paquetes DNS para la IP $capture_ip...${NC}"
+            sudo tcpdump -i $selected_interface host $capture_ip -n -vvv -s 0 port 53
             ;;
           *)
             echo -e "${RED}Opción inválida. Por favor, selecciona una opción válida (1-2).${NC}"
             ;;
         esac
+
+
 
         # Opción para leer el paquete guardado
         read -p "¿Quieres leer el paquete guardado? (s/n): " read_option
