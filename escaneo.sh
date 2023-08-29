@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Asegúrate de tener nmap instalado. Si no está instalado, puedes usar:
-# sudo apt-get install nmap
-# Para calcular la ip de la red junto con la mascara de red es necesario instalar:
-# sudo apt-get install ipcalc
 # El script mejor ejecutarlo con sudo
 
 # Colores ANSI
@@ -28,6 +24,7 @@ instalar_paquete_sinosta() {
 instalar_paquete_sinosta nmap
 instalar_paquete_sinosta ipcalc
 instalar_paquete_sinosta nc
+instalar_paquete_sinosta tshark
 
 # Función para mostrar la cabecera
 cabecera() {
@@ -186,7 +183,7 @@ while true; do
 
       read -p "Presiona Enter para continuar..."
       ;;
-      10)
+      10) # Utilizamos tshark para capturar y leer los paquetes
         cabecera "Sniffear paquetes en la red"
         echo "1. Capturar paquetes en toda la red"
         echo "2. Capturar paquetes de una IP específica"
@@ -194,13 +191,13 @@ while true; do
 
         case $capture_option in
           1)
-            echo -e "${YELLOW}Comenzando la captura de paquetes DNS en la red $network/$mask...${NC}"
-            sudo tcpdump -i $selected_interface -n -vvv -s 0 port 53
+            echo -e "${YELLOW}Comenzando la captura de todo el tráfico en la red...${NC}"
+            sudo tshark -i $selected_interface -Y "http or tls or dns" 
             ;;
           2)
-            read -p "Ingresa la dirección IP para capturar paquetes: " capture_ip
+            read -p "Escribe la dirección IP para capturar sus paquetes: " capture_ip
             echo -e "${YELLOW}Comenzando la captura de paquetes DNS para la IP $capture_ip...${NC}"
-            sudo tcpdump -i $selected_interface host $capture_ip -n -vvv -s 0 port 53
+            sudo tshark -i $selected_interface -Y "ip.src == $capture_ip and udp.port == 53" 
             ;;
           *)
             echo -e "${RED}Opción inválida. Por favor, selecciona una opción válida (1-2).${NC}"
@@ -208,15 +205,14 @@ while true; do
         esac
 
 
-
         # Opción para leer el paquete guardado
-        read -p "¿Quieres leer el paquete guardado? (s/n): " read_option
-        if [[ "$read_option" == "s" ]]; then
-          echo -e "${YELLOW}Leyendo el paquete guardado con tcpdump...${NC}"
-          sudo tcpdump -r capture.pcap
-        fi
+      #  read -p "¿Quieres leer el paquete guardado? (s/n): " read_option
+       # if [[ "$read_option" == "s" ]]; then
+       #   echo -e "${YELLOW}Leyendo el paquete guardado con tshark...${NC}"
+       #   tshark -r captura.pcap
+       # fi
 
-        read -p "Presiona Enter para continuar..."
+        #read -p "Presiona Enter para continuar..."
         ;;
       11) 
         cabecera "Enviar mensaje a una IP detectada"
