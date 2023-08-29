@@ -187,32 +187,49 @@ while true; do
         cabecera "Sniffear paquetes en la red"
         echo "1. Capturar paquetes en toda la red"
         echo "2. Capturar paquetes de una IP específica"
-        read -p "Selecciona una opción (1-2): " capture_option
+        echo "3. Guardar la captura de los paquetes de toda la red"
+        echo "4. Guardar la captura de los paquetes de una IP específica"
+        echo ""
+        read -p "Selecciona una opción (1-5): " capture_option
 
         case $capture_option in
-          1)
-            echo -e "${YELLOW}Comenzando la captura de todo el tráfico en la red...${NC}"
-            sudo tshark -i $selected_interface -Y "http or tls or dns" 
-            ;;
-          2)
-            read -p "Escribe la dirección IP para capturar sus paquetes: " capture_ip
-            echo -e "${YELLOW}Comenzando la captura de paquetes DNS para la IP $capture_ip...${NC}"
-            sudo tshark -i $selected_interface -Y "ip.src == $capture_ip and udp.port == 53" 
-            ;;
+        1)
+          echo -e "${YELLOW}Comenzando la captura de todo el tráfico en la red...${NC}"
+          sudo tshark -i $selected_interface -Y "http or tls or dns"
+          ;;
+        2)
+          read -p "Escribe la dirección IP para capturar sus paquetes: " capture_ip
+          echo -e "${YELLOW}Comenzando la captura de paquetes DNS para la IP $capture_ip...${NC}"
+          sudo tshark -i $selected_interface -Y "ip.src == $capture_ip and udp.port == 53"
+          ;;
+        3)
+          echo -e "${YELLOW}Comenzando la captura de todo el tráfico en la red...${NC}"
+          sudo tshark -i $selected_interface -w captura.pcap &
+          echo -e "${YELLOW}Capturando datos de la red...${NC}"
+          sleep 5  # Ajusta según sea necesario
+          read -p "Captura completada. ¿Quieres leer el archivo captura.pcap? (s/n): " read_option
+          if [[ "$read_option" == "s" ]]; then
+            echo -e "${YELLOW}Leyendo el archivo captura.pcap...${NC}"
+            tshark -r captura.pcap
+          fi
+          ;;
+        4)
+          read -p "Escribe la dirección IP para capturar sus paquetes: " capture_ip
+          echo -e "${YELLOW}Comenzando la captura de paquetes para la IP $capture_ip...${NC}"
+          sudo tshark -i $selected_interface -Y "ip.addr == $capture_ip" -w captura.pcap &
+          echo -e "${YELLOW}Capturando datos de la IP $capture_ip...${NC}"
+          sleep 5  # Ajusta según sea necesario
+          read -p "Captura completada. ¿Quieres leer el archivo captura.pcap? (s/n): " read_option
+          if [[ "$read_option" == "s" ]]; then
+            echo -e "${YELLOW}Leyendo el archivo captura.pcap...${NC}"
+            tshark -r captura.pcap
+          fi
+          ;;
           *)
             echo -e "${RED}Opción inválida. Por favor, selecciona una opción válida (1-2).${NC}"
             ;;
         esac
-
-
-        # Opción para leer el paquete guardado
-      #  read -p "¿Quieres leer el paquete guardado? (s/n): " read_option
-       # if [[ "$read_option" == "s" ]]; then
-       #   echo -e "${YELLOW}Leyendo el paquete guardado con tshark...${NC}"
-       #   tshark -r captura.pcap
-       # fi
-
-        #read -p "Presiona Enter para continuar..."
+        read -p "Presiona Enter para continuar..."
         ;;
       11) 
         cabecera "Enviar mensaje a una IP detectada"
