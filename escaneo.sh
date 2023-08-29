@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Asegúrate de tener nmap instalado. Si no está instalado, puedes usar:
+# sudo apt-get install nmap
+# Para calcular la ip de la red junto con la mascara de red es necesario instalar:
+# sudo apt-get install ipcalc
 # El script mejor ejecutarlo con sudo
 
 # Colores ANSI
@@ -248,6 +252,13 @@ while true; do
         fi
 
         read -p "Presiona Enter para continuar..."
+        ;;
+      12)
+        # Salir del programa
+        echo ""
+        echo "Saliendo del programa."
+        echo ""
+        exit 0
         ;;
     *)
       echo -e "${ROJO}Opción inválida. Por favor, selecciona una opción válida (1-9).${NC}"
