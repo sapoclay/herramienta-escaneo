@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# El script mejor ejecutarlo con sudo
-
 # Colores ANSI
 VERDE='\033[0;32m'
 AMARILLO='\033[1;33m'
@@ -12,10 +10,14 @@ NC='\033[0m' # No Color
 instalar_paquete_sinosta() {
   package_name="$1"
   if ! dpkg -l | grep -q "^ii\s*$package_name"; then
+    echo ""
     echo "Instalando el paquete $package_name ..."
     sudo apt-get install -y "$package_name"
+    echo ""
   else 
+    echo ""
     echo "La dependencia del paquete $package_name ya está instalada"
+    echo ""
     read -p "Presiona Enter para continuar..."
   fi
 }
@@ -33,51 +35,62 @@ cabecera() {
   echo "         Herramienta de Escaneo"
   echo -e "========================================${NC}"
   echo -e "${VERDE}Interfaz seleccionada: $selected_interface"
-  echo -e "${AMARILLO}Dirección IP: $ip_address${NC}"
+  echo -e "${AMARILLO}Dirección IP del equipo: $ip_address${NC}"
+  echo -e "${VERDE}La dirección de red de $selected_interface es: $network_ip${NC}"
+  echo "========================================"
   echo "Opción seleccionada: $1"
   echo "========================================"
 }
 
-# Mostrar lista de interfaces de red disponibles
+clear
+
+# Obtener lista de interfaces de red disponibles
 interfaces=($(ip link | grep 'state UP' | awk -F: '{print $2}'))
 
 clear
 
 echo -e "${VERDE}Interfaces de red disponibles:${NC}"
 for ((i=0; i<${#interfaces[@]}; i++)); do
-  echo "$i: ${interfaces[$i]}"
+  echo "$i: Interfaz -> ${interfaces[$i]}"
 done
 
 # Pedir al usuario que seleccione una interfaz
 while true; do
   read -p "Selecciona una interfaz (escribe el número): " interface_choice
 
-  if [[ "$interface_choice" -ge 0 && "$interface_choice" -lt "${#interfaces[@]}" ]]; then
+  if [[ "$interface_choice" =~ ^[0-9]+$ && "$interface_choice" -ge 0 && "$interface_choice" -lt "${#interfaces[@]}" ]]; then
     selected_interface="${interfaces[$interface_choice]}"
     echo -e "${VERDE}Has seleccionado la interfaz: $selected_interface${NC}"
+
+    # Obtener la dirección IP de la interfaz seleccionada
+    ip_address=$(ip -o -4 addr show $selected_interface | awk '{print $4}' | cut -d"/" -f1)
+
+    # Mostrar la cabecera nuevamente con los valores actualizados
+    cabecera "Seleccionado"
+
     break
   else
     echo -e "${ROJO}Opción inválida. Por favor, selecciona un número válido de interfaz.${NC}"
   fi
 done
 
-# Obtener la dirección IP de la interfaz seleccionada
-ip_address=$(ip -o -4 addr show $selected_interface | awk '{print $4}')
-echo -e "${VERDE}La dirección IP de $selected_interface es: $ip_address${NC}"
+
+# Obtener la dirección de red utilizando ip route
+network_ip=$(ip route | grep "$selected_interface" | awk '/proto kernel/ {print $1}')
 
 # Menú de opciones
 while true; do
   clear
   cabecera "Menú"
   echo -e "${AMARILLO}Opciones:${NC}"
-  echo "1. Escanear puertos abiertos en la red"
+  echo "1. Escanear puertos abiertos"
   echo "2. Escanear solo los puertos más comunes"
   echo "3. Escanear usando técnicas avanzadas (servicios y sistemas operativos)"
   echo "4. Guardar resultados del escaneo en un archivo"
   echo "5. Realizar un escaneo de ping en la red"
   echo "6. Ingresar argumentos adicionales de nmap"
   echo "7. Ver todas las opciones de nmap"
-  echo "8. Agregar dirección IP específica para escaneo"
+  echo "8. Añadir dirección IP específica para escaneo"
   echo "9. Conectar por ssh a una IP"
   echo "10. Sniffear la red"
   echo "11. Enviar mensaje a una IP detectada"
@@ -88,22 +101,71 @@ while true; do
 
   case $option in
     1)
-      cabecera "Escanear puertos abiertos en la red"
-      read -p "Escribe el rango de puertos a escanear (ejemplo: 1-999): " port_range
-      echo -e "${AMARILLO}Escanendo puertos $port_range en la red $ip_address...${NC}"
-      nmap -p $port_range $ip_address
+    cabecera "Escanear puertos abiertos"
+    echo "1. Escanear puertos abiertos en toda la red"
+    echo "2. Escanear puertos abiertos en una IP específica"
+    read -p "Selecciona una opción (1-2): " scan_option
+
+      case $scan_option in
+        1)
+          read -p "Escribe el rango de puertos a escanear (ejemplo: 1-999): " port_range
+          echo -e "${AMARILLO}Escanendo puertos $port_range en toda la red...${NC}"
+          nmap -p $port_range $ip_address
+          ;;
+        2)
+          read -p "Escribe la dirección IP para escanear sus puertos: " target_ip
+          read -p "Escribe el rango de puertos a escanear (ejemplo: 1-999): " port_range
+          echo -e "${AMARILLO}Escanendo puertos $port_range en la IP $target_ip...${NC}"
+          nmap -p $port_range $target_ip
+          ;;
+        *)
+          echo -e "${ROJO}Opción inválida. Por favor, selecciona una opción válida (1-2).${NC}"
+          ;;
+      esac
       read -p "Presiona Enter para continuar..."
       ;;
     2)
-      cabecera "Escanear solo los puertos más comunes"
-      echo -e "${AMARILLO}Escanendo puertos más comunes en la red $ip_address...${NC}"
-      nmap -F $ip_address
+      cabecera "Escanear puertos más comunes"
+      echo "1. Escanear puertos más comunes en toda la red"
+      echo "2. Escanear puertos más comunes en una IP específica"
+      read -p "Selecciona una opción (1-2): " scan_option
+
+        case $scan_option in
+          1)
+            echo -e "${AMARILLO}Escanendo puertos más comunes en toda la red...${NC}"
+            nmap -F $ip_address
+            ;;
+          2)
+            read -p "Escribe la dirección IP para escanear sus puertos más comunes: " target_ip
+            echo -e "${AMARILLO}Escanendo puertos más comunes en la IP $target_ip...${NC}"
+            nmap -F $target_ip
+            ;;
+          *)
+            echo -e "${ROJO}Opción inválida. Por favor, selecciona una opción válida (1-2).${NC}"
+            ;;
+        esac
       read -p "Presiona Enter para continuar..."
       ;;
     3)
       cabecera "Escanear usando técnicas avanzadas"
-      echo -e "${AMARILLO}Escanendo con técnicas avanzadas en la red $ip_address...${NC}"
-      nmap -A $ip_address
+      echo "1. Escanear usando técnicas avanzadas en toda la red"
+      echo "2. Escanear usando técnicas avanzadas en una IP específica"
+      read -p "Selecciona una opción (1-2): " scan_option
+
+        case $scan_option in
+          1)
+            echo -e "${AMARILLO}Escanendo con técnicas avanzadas en toda la red...${NC}"
+            nmap -A $ip_address
+            ;;
+          2)
+            read -p "Escribe la dirección IP para escanear con técnicas avanzadas: " target_ip
+            echo -e "${AMARILLO}Escanendo con técnicas avanzadas en la IP $target_ip...${NC}"
+            nmap -A $target_ip
+            ;;
+          *)
+            echo -e "${ROJO}Opción inválida. Por favor, selecciona una opción válida (1-2).${NC}"
+            ;;
+        esac
       read -p "Presiona Enter para continuar..."
       ;;
     4)
@@ -123,11 +185,13 @@ while true; do
         
         for i in $(seq 1 254); do
           if ping -c 1 -W 1 $base_ip.$i >/dev/null 2>&1; then
-            echo "$base_ip.$i está activa"
+            echo "- La IP -> $base_ip.$i está activa"
             active_ips+=("$base_ip.$i")  # Agregar a la lista de direcciones IP activas
           fi
         done
-        
+
+        echo "-----------------------------------------------"  
+      
         # Mostrar la lista de direcciones IP activas
         echo -e "${VERDE}Direcciones IP activas encontradas:${NC}"
         for ip in "${active_ips[@]}"; do
@@ -150,7 +214,7 @@ while true; do
       read -p "Presiona Enter para continuar..."
       ;;
     8)
-      cabecera "Añade dirección IP específica para escaneo"
+      cabecera "Escribe una dirección IP específica para el escaneo"
       read -p "Escribe la dirección IP específica para escaneo: " specific_ip
       echo -e "${AMARILLO}Escanendo la dirección IP $specific_ip...${NC}"
       nmap -p- $specific_ip
@@ -192,8 +256,8 @@ while true; do
         echo ""
         read -p "Selecciona una opción (1-5): " capture_option
 
-        case $capture_option in
-        1)
+          case $capture_option in
+          1)
           echo -e "${YELLOW}Comenzando la captura de todo el tráfico en la red...${NC}"
           sudo tshark -i $selected_interface -Y "http or tls or dns"
           ;;
@@ -226,7 +290,7 @@ while true; do
           fi
           ;;
           *)
-            echo -e "${RED}Opción inválida. Por favor, selecciona una opción válida (1-2).${NC}"
+            echo -e "${RED}Opción inválida. Por favor, selecciona una opción válida (1-4).${NC}"
             ;;
         esac
         read -p "Presiona Enter para continuar..."
